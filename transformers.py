@@ -45,6 +45,76 @@ class SelfAttention(nn.Module):
         return out
 
 
+class TransformerBlock(nn.Module):
+    def __init__(self, embed_size, heads, dropout, forward_expansion):
+        super(TransformerBlock, self).__init__()
+        self.attention = SelfAttention(embed_size, heads)
+        self.norm1 = nn.LayerNorm(embed_size)
+        self.norm2 = nn.LayerNorm(embed_size)
 
+        self.feed_forward = nn.Sequential(
+            nn.Linear(embed_size, forward_expansion * embed_size),
+            nn.ReLU(),
+            nn.Linear(forward_expansion * embed_size, embed_size)
+        )
+
+        self.dropout = nn.Dropout()
+
+
+    def forward(self, value, key, query, mask):
+        attention = self.attention(value, key, query, mask)
+
+        x = self.dropout(self.norm1(attention + query))
+
+        forward = self.feed_forward(x)
+        out = self.dropout(self.norm2(forward + x))
+        return out
+
+
+
+
+class Encoder(nn.Module):
+    def __init__(self, src_vocab_size, embed_size, num_layers, heads, device, forward_expansion, dropout, max_length):
+        super(Encoder, self).__init__()
+        self.embed_size = embed_size
+        self.device = device
+
+        self.word_embedding = nn.Embedding(src_vocab_size, embed_size)
+        self.positional_encoding = nn.Embedding(max_length, embed_size)
+
+        self.layers = nn.ModuleList(
+            [
+                TransformerBlock(embed_size, heads, dropout = dropout, forward_expansion=forward_expansion)
+            ]
+        )
+
+        self.dropout = nn.Dropout(dropout)
+        
+
+    def forward(self, x, mask):
+        N, seq_length = x.shape   #INPUT SHAPE
+        positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)  #Shape: seq_length --> N, seq_lenght
+
+        out = self.dropout(self.word_embedding(x) + self.positional_encoding(positions))  #Shape: N, seq_length --> N, seq_length, embed_size
+
+        for layer in self.layers:
+            pass
+
+
+
+
+
+
+
+
+
+class Decoder(nn.Module):
+    def __init__():
+        pass
+
+    def forward():
+        pass
+
+    
 
 
